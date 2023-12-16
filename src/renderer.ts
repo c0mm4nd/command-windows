@@ -29,8 +29,44 @@ import "./index.css";
 import "marked";
 import { marked } from "marked";
 
+type ContextBridgeElectron = {
+  send: (command: string, arg: any) => void;
+  on: (
+    command: string,
+    callback: (event: Electron.IpcRendererEvent, arg: any) => void
+  ) => void;
+};
+
+declare global {
+  interface Window {
+    electron: ContextBridgeElectron;
+  }
+}
+
+////////////////////////////////////////////////////////////////////
+
+const modelName = <HTMLInputElement>document.getElementById("modelName");
+const apiKey = <HTMLInputElement>document.getElementById("apiKey");
+const baseURL = <HTMLInputElement>document.getElementById("baseURL");
+
+function updateModel() {
+  if (apiKey.value) {
+    window.electron.send("update-model", {
+      modelName: modelName.value,
+      apiKey: apiKey.value,
+      baseURL: baseURL.value,
+    });
+  }
+}
+
+modelName.addEventListener("change", updateModel);
+apiKey.addEventListener("change", updateModel);
+baseURL.addEventListener("change", updateModel);
+
+////////////////////////////////////////////////////////////////////
+
 const el = document.getElementById("messages");
-el.scrollTop = el.scrollHeight;
+if (el) el.scrollTop = el.scrollHeight;
 
 __electronLog.info(
   'This message is being logged by "renderer.js", included via Vite'
@@ -43,7 +79,7 @@ __electronLog.info(
 //   window.electron.send("capture-screen");
 // });
 
-function addBotMessage(message) {
+async function addBotMessage(message: string) {
   //   <div class="chat-message">
   //   <div class="flex items-end">
   //     <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
@@ -89,7 +125,7 @@ function addBotMessage(message) {
   div2.classList.add("order-1");
 
   const minidenticonSvg = document.createElement("minidenticon-svg");
-  minidenticonSvg.setAttribute("username", "ChatGPT");
+  minidenticonSvg.setAttribute("username", "CommandWin");
   div2.appendChild(minidenticonSvg);
 
   flex.appendChild(div2);
@@ -97,10 +133,10 @@ function addBotMessage(message) {
 
   chatMessage.appendChild(flex);
 
-  document.getElementById("messages").appendChild(chatMessage);
+  document.getElementById("messages")?.appendChild(chatMessage);
 }
 
-function addMyMessage(message) {
+async function addMyMessage(message: string) {
   const chatMessage = document.createElement("div");
   chatMessage.classList.add("chat-message");
 
@@ -120,7 +156,7 @@ function addMyMessage(message) {
   flexCol.classList.add("items-end");
 
   const div = document.createElement("div");
-  div.innerHTML = marked.parse(message, { breaks: true, gfm: true });
+  div.innerHTML = await marked.parse(message, { breaks: true, gfm: true });
   div.classList.add("px-4");
   div.classList.add("py-2");
   div.classList.add("rounded-lg");
@@ -146,24 +182,31 @@ function addMyMessage(message) {
 
   chatMessage.appendChild(flex);
 
-  document.getElementById("messages").appendChild(chatMessage);
+  document.getElementById("messages")?.appendChild(chatMessage);
 }
 
-const userInput = document.getElementById("userInput");
+const userInput = <HTMLInputElement>document.getElementById("userInput");
 // __electronLog.info("userInput", userInput)
-userInput.addEventListener(
+userInput?.addEventListener(
   "keydown",
   function (event) {
     // __electronLog.info("userInput keydown", event.key);
 
     if (event.key === "Enter") {
-      if (!event.shiftKey) {
-        __electronLog.info("userInput keydown Enter: ", userInput.value);
-        window.electron.send("user-message", userInput.value);
-        addMyMessage(userInput.value);
-        event.preventDefault();
-        userInput.value = "";
+      if (event.shiftKey) {
+        return;
       }
+
+      if (!userInput.value.trim()) {
+        event.preventDefault();
+        return;
+      }
+
+      __electronLog.info("userInput keydown Enter: ", userInput.value);
+      window.electron.send("user-message", userInput.value);
+      addMyMessage(userInput.value);
+      event.preventDefault();
+      userInput.value = "";
     }
   },
   false
@@ -171,26 +214,46 @@ userInput.addEventListener(
 
 const sendButton = document.getElementById("sendButton");
 // __electronLog.info("sendButton", sendButton)
-sendButton.addEventListener("click", function (event) {
+sendButton?.addEventListener("click", function (event) {
   __electronLog.info("sendButton click");
-  window.electron.send("user-message");
+  if (!userInput.value.trim()) {
+    event.preventDefault();
+    return;
+  }
+  window.electron.send("user-message", userInput.value);
   addMyMessage(userInput.value);
   userInput.value = "";
 });
 
 window.electron.on("bot-message", (_event, arg) => {
-  // console.log(name, dataUrl);
-  // __electronLog.info("dataUrl", dataUrl)
-
   const message = arg;
 
-  // const imgElem = document.createElement("img");
-  // imgElem.classList.add("screenshot");
-  // imgElem.src = dataUrl;
-  // imgElem.style.display = "block";
-
-  // document.getElementById("screenshots").appendChild(imgElem);
   addBotMessage(message);
+});
+
+window.electron.on("alert", (_event, arg) => {
+  const { title, content } = arg;
+
+  const alertModal = document.getElementById("alert-modal");
+  alertModal?.classList.remove("hidden");
+
+  const alertModalTitle = document.getElementById("alert-modal-title");
+  alertModalTitle.innerText = title;
+
+  const alertModalContent = document.getElementById("alert-modal-content");
+  alertModalContent.innerText = content;
+});
+
+window.electron.on("init", (_event, config) => {
+  __electronLog.info("init", config);
+
+  const modelName = <HTMLInputElement>document.getElementById("modelName");
+  const apiKey = <HTMLInputElement>document.getElementById("apiKey");
+  const baseURL = <HTMLInputElement>document.getElementById("baseURL");
+
+  modelName.value = config.modelName;
+  apiKey.value = config.apiKey;
+  baseURL.value = config.baseURL;
 });
 
 import "minidenticons";
