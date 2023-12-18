@@ -1,6 +1,6 @@
-# CommandWin
+<h1><kbd>⌘ Command</kbd> <kbd>⊞ Windows</kbd></h1>
 
-CommandWin is a desktop opeating system copilot based on multi-modal large language model, supporting all-platforms which have application window.
+CommandWindows (<kbd>⌘</kbd> <kbd>⊞</kbd>) is a desktop opeating system copilot based on multi-modal large language model, supporting all-platforms which have application windows.
 
 ## Supported Model
 
@@ -31,8 +31,8 @@ Preview:
 While an official release is not yet available due to the experimental status, you can still try out this tool by cloning the repository and then running on your system.
 
 ```
-git clone https://github.com/c0mm4nd/command-win
-cd command-win
+git clone https://github.com/c0mm4nd/command-windows
+cd command-windows
 npm i 
 npm run start
 ```
