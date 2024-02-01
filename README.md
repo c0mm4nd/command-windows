@@ -8,6 +8,7 @@ CommandWindows (<kbd>⌘</kbd> <kbd>⊞</kbd>) is a desktop opeating system copi
 - [x] Gemini Pro Vision from Google (`gemini-pro-vision`)
 - [ ] Gemini Nano/Ultra Vision from Google
 - [ ] Local Vision Model
+  - [ ] Vary-toy
 
 ## Features
 
